@@ -1,3 +1,10 @@
-## [0.0.1] - TODO: Add release date.
+## [0.0.2] - 8/4/2019
 
-* TODO: Describe initial release.
+- add drag and zoom gesture
+- add rotation animation
+
+
+
+## [0.0.1] - 8/3/2019
+
+- inital release

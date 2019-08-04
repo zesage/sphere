@@ -1,8 +1,8 @@
 name: sphere
-description: A new Flutter package project.
-version: 0.0.1
-author:
-homepage:
+description: A Flutter sphere widget.
+version: 0.0.2
+author: Zebiao Hu
+homepage: https://github.com/zesage/sphere
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
