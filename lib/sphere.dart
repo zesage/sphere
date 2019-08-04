@@ -19,14 +19,24 @@ class Sphere extends StatefulWidget {
   _SphereState createState() => _SphereState();
 }
 
-class _SphereState extends State<Sphere> {
+class _SphereState extends State<Sphere> with TickerProviderStateMixin {
   Uint32List surface;
   double surfaceWidth;
   double surfaceHeight;
+  double zoom = 0;
+  double rotationX = 0;
+  double rotationZ = 0;
+  double _lastZoom;
+  double _lastRotationX;
+  double _lastRotationZ;
+  Offset _lastFocalPoint;
+  AnimationController rotationZController;
+  Animation<double> rotationZAnimation;
+  double get radius => widget.radius * math.pow(2, zoom);
 
   Future<ui.Image> buildSphere() {
     if (surface == null) return null;
-    final r = widget.radius;
+    final r = radius.roundToDouble();
     final minX = -r;
     final minY = -r;
     final maxX = r;
@@ -44,7 +54,7 @@ class _SphereState extends State<Sphere> {
           var x1 = x, y1 = y, z1 = z;
           double x2, y2, z2;
           //rotate around the X axis
-          var angle = math.pi / 2 - widget.latitude * math.pi / 180;
+          var angle = math.pi / 2 - rotationX;
           y2 = y1 * math.cos(angle) - z1 * math.sin(angle);
           z2 = y1 * math.sin(angle) + z1 * math.cos(angle);
           y1 = y2;
@@ -56,7 +66,7 @@ class _SphereState extends State<Sphere> {
           // x1 = x2;
           // z1 = z2;
           //rotate around the Z axis
-          angle = widget.longitude * math.pi / 180 + math.pi / 2;
+          angle = rotationZ + math.pi / 2;
           x2 = x1 * math.cos(angle) - y1 * math.sin(angle);
           y2 = x1 * math.sin(angle) + y1 * math.cos(angle);
           x1 = x2;
@@ -101,19 +111,58 @@ class _SphereState extends State<Sphere> {
   @override
   void initState() {
     super.initState();
+    rotationX = widget.latitude * math.pi / 180;
+    rotationZ = widget.longitude * math.pi / 180;
+    rotationZController = AnimationController(vsync: this)
+      ..addListener(() {
+        setState(() => rotationZ = rotationZAnimation.value);
+      });
     loadSurface();
   }
 
   @override
+  void dispose() {
+    rotationZController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: buildSphere(),
-      builder: (BuildContext context, AsyncSnapshot<ui.Image> snapshot) {
-        return CustomPaint(
-          painter: SpherePainter(image: snapshot.data, radius: widget.radius),
-          size: Size(widget.radius * 2, widget.radius * 2),
-        );
+    return GestureDetector(
+      onScaleStart: (ScaleStartDetails details) {
+        _lastZoom = zoom;
+        _lastRotationX = rotationX;
+        _lastRotationZ = rotationZ;
+        _lastFocalPoint = details.focalPoint;
+        rotationZController.stop();
       },
+      onScaleUpdate: (ScaleUpdateDetails details) {
+        zoom = _lastZoom + math.log(details.scale) / math.ln2;
+        final offset = details.focalPoint - _lastFocalPoint;
+        rotationX = _lastRotationX + offset.dy / radius;
+        rotationZ = _lastRotationZ - offset.dx / radius;
+        setState(() {});
+      },
+      onScaleEnd: (ScaleEndDetails details) {
+        final a = -300;
+        final v = details.velocity.pixelsPerSecond.dx * 0.3;
+        final t = (v / a).abs() * 1000;
+        final s = (v.sign * 0.5 * v * v / a) / radius;
+        rotationZController.duration = Duration(milliseconds: t.toInt());
+        rotationZAnimation = Tween<double>(begin: rotationZ, end: rotationZ + s).animate(CurveTween(curve: Curves.decelerate).animate(rotationZController));
+        rotationZController
+          ..value = 0
+          ..forward();
+      },
+      child: FutureBuilder(
+        future: buildSphere(),
+        builder: (BuildContext context, AsyncSnapshot<ui.Image> snapshot) {
+          return CustomPaint(
+            painter: SpherePainter(image: snapshot.data, radius: radius),
+            size: Size(radius * 2, radius * 2),
+          );
+        },
+      ),
     );
   }
 }
@@ -131,7 +180,7 @@ class SpherePainter extends CustomPainter {
     final rect = Rect.fromCircle(center: offset, radius: radius - 1);
     final path = Path()..addOval(rect);
     canvas.clipPath(path);
-    canvas.drawImage(image, offset - Offset(radius, radius), paint);
+    canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), rect, paint);
 
     final gradient = RadialGradient(
       center: Alignment.center,
