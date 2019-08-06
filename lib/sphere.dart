@@ -9,7 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class Sphere extends StatefulWidget {
-  Sphere({this.surface, this.radius, this.latitude, this.longitude});
+  Sphere({Key key, this.surface, this.radius, this.latitude, this.longitude}) : super(key: key);
   final String surface;
   final double radius;
   final double latitude;
@@ -45,7 +45,21 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
     final height = maxY - minY;
     final sphere = Uint32List(width.toInt() * height.toInt());
 
+    var angle = math.pi / 2 - rotationX;
+    final sinx = math.sin(angle);
+    final cosx = math.cos(angle);
+    // angle = 0;
+    // final siny = math.sin(angle);
+    // final cosy = math.cos(angle);
+    angle = rotationZ + math.pi / 2;
+    final sinz = math.sin(angle);
+    final cosz = math.cos(angle);
+
+    final surfaceXRate = (surfaceWidth - 1) / (2.0 * math.pi);
+    final surfaceYRate = (surfaceHeight - 1) / (math.pi);
+
     for (var y = minY; y < maxY; y++) {
+      final sphereY = (-y - minY - 1) * width;
       for (var x = minX; x < maxX; x++) {
         var z = r * r - x * x - y * y;
         if (z > 0) {
@@ -54,32 +68,29 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
           var x1 = x, y1 = y, z1 = z;
           double x2, y2, z2;
           //rotate around the X axis
-          var angle = math.pi / 2 - rotationX;
-          y2 = y1 * math.cos(angle) - z1 * math.sin(angle);
-          z2 = y1 * math.sin(angle) + z1 * math.cos(angle);
+          y2 = y1 * cosx - z1 * sinx;
+          z2 = y1 * sinx + z1 * cosx;
           y1 = y2;
           z1 = z2;
           //rotate around the Y axis
-          // angle = 0;
-          // x2 = x1 * math.cos(angle) + z1 * math.sin(angle);
-          // z2 = -x1 * math.sin(angle) + z1 * math.cos(angle);
+          // x2 = x1 * cosy + z1 * siny;
+          // z2 = -x1 * siny + z1 * cosy;
           // x1 = x2;
           // z1 = z2;
           //rotate around the Z axis
-          angle = rotationZ + math.pi / 2;
-          x2 = x1 * math.cos(angle) - y1 * math.sin(angle);
-          y2 = x1 * math.sin(angle) + y1 * math.cos(angle);
+          x2 = x1 * cosz - y1 * sinz;
+          y2 = x1 * sinz + y1 * cosz;
           x1 = x2;
           y1 = y2;
 
           final lat = math.asin(z1 / r);
           final lon = math.atan2(y1, x1);
 
-          final x0 = (0.5 + lon / (2.0 * math.pi)) * (surfaceWidth - 1);
-          final y0 = (0.5 - lat / math.pi) * (surfaceHeight - 1);
+          final x0 = (lon + math.pi) * surfaceXRate;
+          final y0 = (math.pi / 2 - lat) * surfaceYRate;
 
-          final color = surface[y0.round() * surfaceWidth.toInt() + x0.round()];
-          sphere[((-y - minY - 1) * width + x - minX).toInt()] = color;
+          final color = surface[(y0.toInt() * surfaceWidth + x0).toInt()];
+          sphere[(sphereY + x - minX).toInt()] = color;
         }
       }
     }
@@ -177,9 +188,10 @@ class SpherePainter extends CustomPainter {
     if (image == null) return;
     final paint = Paint();
     final offset = Offset(size.width / 2, size.height / 2);
-    final rect = Rect.fromCircle(center: offset, radius: radius - 1);
+    var rect = Rect.fromCircle(center: offset, radius: radius - 1);
     final path = Path()..addOval(rect);
     canvas.clipPath(path);
+    rect = Rect.fromCircle(center: offset, radius: radius);
     canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), rect, paint);
 
     final gradient = RadialGradient(
