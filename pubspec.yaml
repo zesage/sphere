@@ -1,7 +1,7 @@
 name: sphere
 description: A Flutter sphere widget.
 version: 0.0.3
-author: Zebiao Hu
+author: Zebiao Hu <zesage@gmail.com>
 homepage: https://github.com/zesage/sphere
 
 environment:
