@@ -97,54 +97,68 @@ class _SphereState extends State<Sphere> {
 
 
 - 画布坐标转换为直角坐标，可以通过[球坐标系变换公式](https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates)，在已知球体半径 r 和 x、y 即可求出 z 坐标，那么直角坐标则为(x,y,z)，公式：
-  $$
-  \begin{align}
+  <!--  $$
+  \begin{aligned}
   r&=\sqrt{x^2+y^2+z^2}\\\\
   z&=\sqrt{r^2-x^2-y^2}
-  \end{align}
-  $$
+  \end{aligned}
+  $$-->
+  <div align="center">
+  <img src="tex2img_math_01.png" />
+  </div>
+
+  
 
 - 使用[旋转矩阵](https://en.wikipedia.org/wiki/Rotation_matrix#Basic_rotations)来旋转坐标，公式：
-  $$
-  \begin{align}
+<!--  $$
+  \begin{aligned}
   R_x(\theta)&=\begin{bmatrix}1 & 0 & 0 \\ 0 & cos\theta & -sin\theta \\ 0 & sin\theta & cos\theta \end{bmatrix} \\
   R_y(\theta)&=\begin{bmatrix}cos\theta & 0 & sin\theta \\ 0 & 1 & 0 \\ -sin\theta & 0 & cos\theta \end{bmatrix} \\
   R_z(\theta)&=\begin{bmatrix}cos\theta & -sin\theta & 0 \\ sin\theta & cos\theta & 0 \\ 0 & 0 & 1 \end{bmatrix}
-  \end{align}
-  $$
-  
+  \end{aligned}
+  $$-->
+  <div align="center">
+  <img src="tex2img_math_02.png" />
+  </div>
+
   
   
   Rx(θ)是绕x轴旋转θ弧度，是纬度的旋转，Rz(θ)是绕z轴旋转θ弧度，是经度的旋转，Ry(θ)暂时没用到，如(x,y,z)为原坐标，那么旋转后的坐标(x2,y2,z2)计算如下：
-  $$
-  \begin{align}
+  <!--  $$
+  \begin{aligned}
   R_x(\theta)&
   \begin{Bmatrix}
   y_2=y\cdot cos\theta - z\cdot sin\theta \\
   z_2=y\cdot sin\theta + z\cdot cos\theta \\
   \end{Bmatrix} \\
-  R_y(\theta)&
+R_y(\theta)&
   \begin{Bmatrix}
-  x_2=x\cdot cos\theta + z\cdot sin\theta \\
+x_2=x\cdot cos\theta + z\cdot sin\theta \\
   z_2=-x\cdot sin\theta + z\cdot cos\theta \\
-\end{Bmatrix} \\
+  \end{Bmatrix} \\
   R_z(\theta)&
-\begin{Bmatrix}
+  \begin{Bmatrix}
   x_2=x\cdot cos\theta - y\cdot sin\theta \\
   y_2=x\cdot sin\theta + y\cdot cos\theta
   \end{Bmatrix}
-  \end{align}
-  $$
+  \end{aligned}
+  $$-->
+  
+  <div align="center">
+  <img src="tex2img_math_03.png" />
+  </div>
   
 - 直角坐标转换为球坐标，[球坐标系变换公式](https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates)为：
-  $$
-  \begin{align}
+<!--  $$
+  \begin{aligned}
   r&=\sqrt{x^2+y^2+z^2}\\
   \theta&=arccos\frac{z}{\sqrt{x^2+y^2+z^2}}=arccos\frac{z}{r}\\
   \varphi&=arctan\frac{y}{x}
-  \end{align}
-  $$
-  
+  \end{aligned}
+  $$-->
+  <div align="center">
+  <img src="tex2img_math_04.png" />
+  </div>
 
   如图在球面上的任意一点P(r, θ, φ)，直角坐标表示为(x,y,z)，经度lon为φ角，而纬度lat并不是θ角，而是θ的邻角，也就是90°-θ。
 
@@ -155,21 +169,27 @@ class _SphereState extends State<Sphere> {
   
 
   由此我们可以得出以下公式：
-  $$
-  \begin{align}
+<!--  $$
+  \begin{aligned}
   &lat=arcsin\frac{z}{r}\\
   &lon=arctan\frac{y}{x}
-  \end{align}
-  $$
+  \end{aligned}
+  $$-->
+  <div align="center">
+  <img src="tex2img_math_05.png" />
+  </div>
 
 - 经纬度转换成图片的像素坐标 
 
   经度lon范围是 -π～π，纬度lat范围是 -π/2～π/2，将经纬度按比例转换成图片surface上的像素坐标(x0, y0)。
 
-$$
-x_0=(0.5+\frac{lan}{2\pi})\cdot (surfaceWidth-1)\\
-y_0=(0.5-\frac{lat}{\pi})\cdot (surfaceHeight-1)
-$$
+<!--  $$
+  x_0=(0.5+\frac{lan}{2\pi})\cdot (surfaceWidth-1)\\
+  y_0=(0.5-\frac{lat}{\pi})\cdot (surfaceHeight-1)
+  $$-->
+  <div align="center">
+  <img src="tex2img_math_06.png" />
+  </div>
 
 了解如何转换坐标后，就可以开始创建Sphere的图像了，我们使用Uint32List类型创建一个Sphere像素表来存储所有像素，然后遍历每个像素，转换其坐标后从surface上获取像素并存入Sphere像素表，完成后使用decodeImageFromPixels 将Sphere像素表转换成Image对象，而转换Image使用的是回调函数，所以这里使用Completer来返回Future<ui.Image>类型。
 
