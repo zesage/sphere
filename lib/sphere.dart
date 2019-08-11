@@ -9,11 +9,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class Sphere extends StatefulWidget {
-  Sphere({Key key, this.surface, this.radius, this.latitude, this.longitude}) : super(key: key);
+  Sphere({Key key, this.surface, this.radius, this.latitude = 0, this.longitude = 0, this.alignment = Alignment.center}) : super(key: key);
   final String surface;
   final double radius;
   final double latitude;
   final double longitude;
+  final Alignment alignment;
 
   @override
   _SphereState createState() => _SphereState();
@@ -34,15 +35,16 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
   Animation<double> rotationZAnimation;
   double get radius => widget.radius * math.pow(2, zoom);
 
-  Future<ui.Image> buildSphere() {
+  Future<SphereImage> buildSphere(double maxWidth, double maxHeight) {
     if (surface == null) return null;
     final r = radius.roundToDouble();
-    final minX = -r;
-    final minY = -r;
-    final maxX = r;
-    final maxY = r;
+    final minX = math.max(-r, (-1 - widget.alignment.x) * maxWidth / 2);
+    final minY = math.max(-r, (-1 + widget.alignment.y) * maxHeight / 2);
+    final maxX = math.min(r, (1 - widget.alignment.x) * maxWidth / 2);
+    final maxY = math.min(r, (1 + widget.alignment.y) * maxHeight / 2);
     final width = maxX - minX;
     final height = maxY - minY;
+    if (width <= 0 || height <= 0) return null;
     final sphere = Uint32List(width.toInt() * height.toInt());
 
     var angle = math.pi / 2 - rotationX;
@@ -59,7 +61,7 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
     final surfaceYRate = (surfaceHeight - 1) / (math.pi);
 
     for (var y = minY; y < maxY; y++) {
-      final sphereY = (-y - minY - 1) * width;
+      final sphereY = (height - y + minY - 1).toInt() * width;
       for (var x = minX; x < maxX; x++) {
         var z = r * r - x * x - y * y;
         if (z > 0) {
@@ -95,14 +97,16 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
       }
     }
 
-    final c = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      sphere.buffer.asUint8List(),
-      width.toInt(),
-      height.toInt(),
-      ui.PixelFormat.rgba8888,
-      (image) => c.complete(image),
-    );
+    final c = Completer<SphereImage>();
+    ui.decodeImageFromPixels(sphere.buffer.asUint8List(), width.toInt(), height.toInt(), ui.PixelFormat.rgba8888, (image) {
+      final sphereImage = SphereImage(
+        image: image,
+        radius: r,
+        origin: Offset(-minX, -minY),
+        offset: Offset((widget.alignment.x + 1) * maxWidth / 2, (widget.alignment.y + 1) * maxHeight / 2),
+      );
+      c.complete(sphereImage);
+    });
     return c.future;
   }
 
@@ -165,12 +169,16 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
           ..value = 0
           ..forward();
       },
-      child: FutureBuilder(
-        future: buildSphere(),
-        builder: (BuildContext context, AsyncSnapshot<ui.Image> snapshot) {
-          return CustomPaint(
-            painter: SpherePainter(image: snapshot.data, radius: radius),
-            size: Size(radius * 2, radius * 2),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return FutureBuilder(
+            future: buildSphere(constraints.maxWidth, constraints.maxHeight),
+            builder: (BuildContext context, AsyncSnapshot<SphereImage> snapshot) {
+              return CustomPaint(
+                painter: SpherePainter(snapshot.data),
+                size: Size(constraints.maxWidth, constraints.maxHeight),
+              );
+            },
           );
         },
       ),
@@ -178,21 +186,26 @@ class _SphereState extends State<Sphere> with TickerProviderStateMixin {
   }
 }
 
-class SpherePainter extends CustomPainter {
-  SpherePainter({this.image, this.radius});
+class SphereImage {
+  SphereImage({this.image, this.radius, this.origin, this.offset});
   final ui.Image image;
   final double radius;
+  final Offset origin;
+  final Offset offset;
+}
+
+class SpherePainter extends CustomPainter {
+  SpherePainter(this.sphereImage);
+  final SphereImage sphereImage;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (image == null) return;
+    if (sphereImage == null) return;
     final paint = Paint();
-    final offset = Offset(size.width / 2, size.height / 2);
-    var rect = Rect.fromCircle(center: offset, radius: radius - 1);
-    final path = Path()..addOval(rect);
+    final rect = Rect.fromCircle(center: sphereImage.offset, radius: sphereImage.radius - 1);
+    final path = Path.combine(PathOperation.intersect, Path()..addOval(rect), Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)));
     canvas.clipPath(path);
-    rect = Rect.fromCircle(center: offset, radius: radius);
-    canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), rect, paint);
+    canvas.drawImage(sphereImage.image, sphereImage.offset - sphereImage.origin, paint);
 
     final gradient = RadialGradient(
       center: Alignment.center,

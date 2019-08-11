@@ -1,7 +1,5 @@
 # Sphere
 
-------
-
 [![pub package](https://img.shields.io/pub/v/sphere.svg)](https://pub.dev/packages/sphere)
 
 A sphere widget for Flutter.
@@ -12,7 +10,7 @@ Add sphere as a dependency in your pubspec.yaml file.
 
 ```yaml
 dependencies:
-  sphere: ^0.0.3
+  sphere: ^0.0.4
 ```
 
 ## Usage example

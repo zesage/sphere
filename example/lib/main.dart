@@ -54,14 +54,13 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: <Widget>[
             Expanded(
-              child: Center(
-                child: Sphere(
-                  key: ValueKey(surface),
-                  surface: 'assets/' + surface,
-                  radius: 160,
-                  latitude: 15,
-                  longitude: 0,
-                ),
+              child: Sphere(
+                key: ValueKey(surface),
+                surface: 'assets/' + surface,
+                radius: 160,
+                latitude: 15,
+                longitude: 0,
+                alignment: Alignment.center,
               ),
             ),
             Container(

@@ -1,3 +1,9 @@
+## [0.0.4] - 8/4/2019
+
+- add alignment
+- clip sphere image
+
+
 ## [0.0.3] - 8/4/2019
 
 - optimized buildsphere
